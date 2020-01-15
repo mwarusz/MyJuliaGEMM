@@ -98,7 +98,8 @@ end
   end
 end
 
-@inline function loop_one!(C, A, lineA, B, sizes::BlockSizes{MC, NC, KC, MR, NR}) where {MC, NC, KC, MR, NR} 
+@inline function loop_one!(C, A, lineA, B,
+                           sizes::BlockSizes{MC, NC, KC, MR, NR}) where {MC, NC, KC, MR, NR} 
   m = size(C, 1)
   @inbounds for i = 1:MR:m
     Ctile = view(C, i:i+MR-1, :)
@@ -108,7 +109,8 @@ end
   end
 end
 
-@inline function micro_kernel!(C, A, B, sizes::BlockSizes{MC, NC, KC, MR, NR}) where {MC, NC, KC, MR, NR} 
+@inline function micro_kernel!(C, A, B,
+                               sizes::BlockSizes{MC, NC, KC, MR, NR}) where {MC, NC, KC, MR, NR} 
   vecT = Vec{4, Float64}
   MRdiv4 = div(MR, 4)
   # full C size
