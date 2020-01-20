@@ -114,13 +114,13 @@ end
   vecT = Vec{4, Float64}
   MRdiv4 = div(MR, 4)
   # full C size
-  n = size(parent(C), 2)
+  m = size(parent(C), 1)
 
   cT = MArray{Tuple{MRdiv4, NR}, vecT}(undef)
 
   @unroll for q = 1:NR
     @unroll for r = 1:MRdiv4
-      offset = 8 * (4(r - 1) + (q - 1) * n)
+      offset = 8 * (4(r - 1) + (q - 1) * m)
       @inbounds cT[r, q] = vload(vecT, pointer(C) + offset, Val(true))
     end
   end
@@ -145,7 +145,7 @@ end
 
   @unroll for q = 1:NR
     @unroll for r = 1:MRdiv4
-      offset = 8 * (4(r - 1) + (q - 1) * n)
+      offset = 8 * (4(r - 1) + (q - 1) * m)
       @inbounds vstore(cT[r, q], pointer(C) + offset, Val(true), Val(true))
     end
   end
