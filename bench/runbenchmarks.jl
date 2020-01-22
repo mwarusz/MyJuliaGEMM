@@ -1,7 +1,7 @@
 using MyJuliaGEMM
 
 using LinearAlgebra, Printf, Random
-BLAS.set_num_threads(1)
+BLAS.set_num_threads(Threads.nthreads())
 
 function referencegemm!(C, A, B)
   BLAS.gemm!('N', 'N', 1.0, A, B, 1.0, C)

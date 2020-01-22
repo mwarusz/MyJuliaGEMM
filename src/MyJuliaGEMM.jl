@@ -10,13 +10,19 @@ struct BlockSizes{MC, NC, KC, MR, NR} end
 function mygemm!(C, A, B; MR = 8, NR = 6, MC = 96, NC = 2016, KC = 256)
   m, n = size(C)
 
+  # Split MC over threads (targets L3 cache)
+  MC = MR * cld(cld(MC, Threads.nthreads()), MR)
+  # Make sure every thread has some work for small matrices
+  NC = min(NC, NR*cld(cld(n, Threads.nthreads()), NR))
+
   @assert m % MR == 0
   @assert MC % MR == 0
   @assert n % NR == 0
   @assert NC % NR == 0
 
-  packedA = MVector{MC * KC, Float64}(undef)
-  packedB = MVector{KC * NC, Float64}(undef)
+  # Create separate pack space for each thread
+  packedA = [MVector{MC * KC, Float64}(undef) for k = 1:Threads.nthreads()]
+  packedB = [MVector{KC * NC, Float64}(undef) for k = 1:Threads.nthreads()]
 
   loop_five!(C, A, B, packedA, packedB, BlockSizes{MC, NC, KC, MR, NR}())
 end
@@ -24,11 +30,14 @@ end
 function loop_five!(C, A, B, packedA, packedB,
                     sizes::BlockSizes{MC, NC, KC, MR, NR}) where {MC, NC, KC, MR, NR}
   n = size(C, 2)
-  @inbounds for j = 1:NC:n
+  @inbounds Threads.@threads for j = 1:NC:n
     jb = min(j + NC - 1, n)
     Ctile = view(C, :, j:jb)
     Btile = view(B, :, j:jb)
-    loop_four!(Ctile, A, Btile, packedA, packedB, sizes)
+    loop_four!(Ctile, A, Btile,
+               packedA[Threads.threadid()],
+               packedB[Threads.threadid()],
+               sizes)
   end
 end
 
