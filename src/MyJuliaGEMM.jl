@@ -5,6 +5,8 @@ export mygemm!
 using SIMD, StaticArrays
 using GPUifyLoops: @unroll
 
+Base.elsize(::Type{<:MVector{S,T}}) where {S,T} = sizeof(T)
+
 struct BlockSizes{MC, NC, KC, MR, NR} end
 
 function mygemm!(C, A, B; MR = 8, NR = 6, MC = 96, NC = 2016, KC = 256)
@@ -121,7 +123,7 @@ end
   @unroll for q = 1:NR
     @unroll for r = 1:MRdiv4
       offset = 8 * (4(r - 1) + (q - 1) * m)
-      @inbounds cT[r, q] = vload(vecT, pointer(C) + offset, Val(true))
+      @inbounds cT[r, q] = vload(vecT, pointer(C) + offset, nothing, Val(true))
     end
   end
 
@@ -132,7 +134,7 @@ end
   @inbounds @unroll 4 for p = 1:lBdiv4
     @unroll for r = 1:MRdiv4
       offset = 8 * (4(r - 1) + MR * (p - 1))
-      a[r] = vload(vecT, pointer(A) + offset, Val(true))
+      a[r] = vload(vecT, pointer(A) + offset, nothing, Val(true))
     end
 
     @unroll for q = 1:NR
@@ -146,7 +148,8 @@ end
   @unroll for q = 1:NR
     @unroll for r = 1:MRdiv4
       offset = 8 * (4(r - 1) + (q - 1) * m)
-      @inbounds vstore(cT[r, q], pointer(C) + offset, Val(true), Val(true))
+      @inbounds vstore(cT[r, q], pointer(C) + offset, nothing, Val(true),
+                       Val(true))
     end
   end
 end
